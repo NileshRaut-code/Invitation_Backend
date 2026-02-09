@@ -40,14 +40,18 @@ app.use('/api', limiter); // Changed from apiLimiter to limiter
 
 // Database Connection
 const connectDB = async () => {
+    if (mongoose.connection.readyState >= 1) return; // Use existing connection
     try {
         await mongoose.connect(process.env.MONGO_URI);
         console.log('MongoDB Connected');
     } catch (err) {
         console.error('MongoDB Connection Error:', err);
-        process.exit(1);
+        // Do not exit process in serverless
     }
 };
+
+// Connect to DB immediately
+connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -69,7 +73,7 @@ app.use(errorHandler);
 // Start Server
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
-        connectDB();
+        // connectDB(); // Already called above
         console.log(`Server running on port ${PORT}`);
     });
 }
