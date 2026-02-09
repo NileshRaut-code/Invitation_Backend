@@ -67,7 +67,11 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Start Server
-app.listen(PORT, () => {
-    connectDB();
-    console.log(`Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        connectDB();
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+export default app;
