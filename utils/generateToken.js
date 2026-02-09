@@ -13,7 +13,7 @@ const generateToken = (res, userId) => {
     res.cookie('accessToken', accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV !== 'development', // Must be true for SameSite=None
-        sameSite: process.env.NODE_ENV === 'development' ? 'strict' : 'none', // None for cross-site (Vercel)
+        sameSite:'none', // None for cross-site (Vercel)
         maxAge: 15 * 60 * 1000, // 15 minutes in milliseconds
     });
 
@@ -21,7 +21,7 @@ const generateToken = (res, userId) => {
     res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV !== 'development', // Must be true for SameSite=None
-        sameSite: process.env.NODE_ENV === 'development' ? 'strict' : 'none', // None for cross-site (Vercel)
+        sameSite: 'none', // None for cross-site (Vercel)
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
     });
 
