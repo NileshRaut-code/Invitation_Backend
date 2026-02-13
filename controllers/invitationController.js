@@ -96,7 +96,7 @@ const getInvitationById = async (req, res) => {
 // @route   PUT /api/invitations/:id
 // @access  Private
 const updateInvitation = async (req, res) => {
-    const { content, status, customData, design } = req.body;
+    const { content, status, customData, design, slug, expiresAt, autoDelete } = req.body;
 
     const invitation = await Invitation.findById(req.params.id);
 
@@ -115,6 +115,31 @@ const updateInvitation = async (req, res) => {
     if (status) invitation.status = status;
     if (customData) invitation.customData = customData;
     if (design) invitation.design = design;
+
+    // Handle custom slug (branded link)
+    if (slug !== undefined && slug !== invitation.slug) {
+        // Sanitize: lowercase, only alphanumeric and hyphens, 3-50 chars
+        const sanitized = slug.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 50);
+        if (sanitized.length < 3) {
+            res.status(400);
+            throw new Error('Slug must be at least 3 characters (letters, numbers, hyphens only)');
+        }
+        // Check uniqueness
+        const existing = await Invitation.findOne({ slug: sanitized, _id: { $ne: invitation._id } });
+        if (existing) {
+            res.status(400);
+            throw new Error('This custom link is already taken. Please choose another.');
+        }
+        invitation.slug = sanitized;
+    }
+
+    // Handle expiry settings
+    if (expiresAt !== undefined) {
+        invitation.expiresAt = expiresAt ? new Date(expiresAt) : null;
+    }
+    if (autoDelete !== undefined) {
+        invitation.autoDelete = autoDelete;
+    }
 
     const updatedInvitation = await invitation.save();
     res.json(updatedInvitation);
