@@ -225,6 +225,37 @@ const getPublicInvitation = async (req, res) => {
     res.json(invitation);
 };
 
+// @desc    Toggle invitation status
+// @route   PUT /api/invitations/:id/status
+// @access  Private
+const toggleInvitationStatus = async (req, res, next) => {
+    try {
+        const invitation = await Invitation.findById(req.params.id);
+
+        if (!invitation) {
+            res.status(404);
+            throw new Error('Invitation not found');
+        }
+
+        if (invitation.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+            res.status(401);
+            throw new Error('Not authorized to update this invitation');
+        }
+
+        // Toggle logic: published -> draft, anything else -> published
+        if (invitation.status === 'published') {
+            invitation.status = 'draft';
+        } else {
+            invitation.status = 'published';
+        }
+
+        const updatedInvitation = await invitation.save();
+        res.status(200).json(updatedInvitation);
+    } catch (error) {
+        next(error);
+    }
+};
+
 export {
     createInvitation,
     getMyInvitations,
@@ -233,4 +264,5 @@ export {
     deleteInvitation,
     uploadInvitationImage,
     getPublicInvitation,
+    toggleInvitationStatus,
 };
