@@ -8,7 +8,7 @@ const blockSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['hero', 'eventDetails', 'venue', 'gallery', 'rsvp', 'message', 'footer', 'divider', 'countdown', 'custom'],
+        enum: ['hero', 'eventDetails', 'venue', 'gallery', 'rsvp', 'message', 'footer', 'divider', 'countdown', 'custom', 'youtube', 'fullImage', 'pdf', 'socialShare', 'qrCode'],
         required: true,
     },
     order: {

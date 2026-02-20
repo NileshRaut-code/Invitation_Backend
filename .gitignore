@@ -8,7 +8,7 @@ package-lock.json
 .env
 .env.local
 .env.*.local
-
+seed.js
 # IDE
 .vscode/
 .idea/
