@@ -36,7 +36,16 @@ app.use(
     })
 );
 app.use(helmet());
-app.use(mongoSanitize()); // Prevent NoSQL injection
+// Prevent NoSQL injection (Express 5 compatible — req.query is read-only)
+app.use((req, res, next) => {
+    if (req.body && typeof req.body === 'object') {
+        mongoSanitize.sanitize(req.body);
+    }
+    if (req.params && typeof req.params === 'object') {
+        mongoSanitize.sanitize(req.params);
+    }
+    next();
+});
 
 // Apply general rate limiter to all API routes
 app.use('/api', limiter); // Changed from apiLimiter to limiter
