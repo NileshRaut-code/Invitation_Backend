@@ -16,13 +16,32 @@ const userSchema = new mongoose.Schema(
         },
         password: {
             type: String,
-            required: true,
+            required: function () {
+                return !this.googleId; // Password not required for Google users
+            },
         },
         role: {
             type: String,
             enum: ['admin', 'customer'],
             default: 'customer',
         },
+        avatar: {
+            type: String,
+            default: '',
+        },
+        // Google OAuth
+        googleId: {
+            type: String,
+            default: null,
+        },
+        // Email verification
+        isEmailVerified: {
+            type: Boolean,
+            default: false,
+        },
+        emailVerificationToken: String,
+        emailVerificationExpire: Date,
+        // Password reset
         resetPasswordToken: String,
         resetPasswordExpire: Date,
     },
@@ -33,7 +52,7 @@ const userSchema = new mongoose.Schema(
 
 // Encrypt password using bcrypt
 userSchema.pre('save', async function () {
-    if (!this.isModified('password')) {
+    if (!this.isModified('password') || !this.password) {
         return;
     }
     const salt = await bcrypt.genSalt(10);
@@ -42,6 +61,7 @@ userSchema.pre('save', async function () {
 
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function (enteredPassword) {
+    if (!this.password) return false;
     return await bcrypt.compare(enteredPassword, this.password);
 };
 

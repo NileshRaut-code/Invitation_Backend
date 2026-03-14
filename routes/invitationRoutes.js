@@ -8,6 +8,7 @@ import {
     uploadInvitationImage,
     getPublicInvitation,
     toggleInvitationStatus,
+    duplicateInvitation,
 } from '../controllers/invitationController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -31,5 +32,6 @@ router.route('/:id')
     .delete(deleteInvitation);
 
 router.put('/:id/status', toggleInvitationStatus);
+router.post('/:id/duplicate', duplicateInvitation);
 
 export default router;

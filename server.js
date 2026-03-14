@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import mongoSanitize from 'express-mongo-sanitize';
 import dotenv from 'dotenv';
 
 import authRoutes from './routes/authRoutes.js';
@@ -12,6 +13,7 @@ import rsvpRoutes from './routes/rsvpRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js'; // Added
+import whatsappRoutes from './routes/whatsappRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import { apiLimiter as limiter } from './middleware/rateLimiter.js'; // Renamed apiLimiter to limiter
 
@@ -24,8 +26,8 @@ const PORT = process.env.PORT || 5000; // Kept original PORT variable name
 app.set('trust proxy', 1);
 
 // Middleware
-app.use(express.json({ limit: '50mb' })); // Modified
-app.use(express.urlencoded({ extended: true, limit: '50mb' })); // Modified
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(cookieParser());
 app.use(
     cors({
@@ -34,6 +36,7 @@ app.use(
     })
 );
 app.use(helmet());
+app.use(mongoSanitize()); // Prevent NoSQL injection
 
 // Apply general rate limiter to all API routes
 app.use('/api', limiter); // Changed from apiLimiter to limiter
@@ -61,6 +64,7 @@ app.use('/api/rsvps', rsvpRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: 'API is running...' });

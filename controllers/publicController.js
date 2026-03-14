@@ -1,5 +1,6 @@
 import Category from '../models/Category.js';
 import Template from '../models/Template.js';
+import sendEmail from '../utils/sendEmail.js';
 
 // @desc    Get all published categories
 // @route   GET /api/public/categories
@@ -51,9 +52,35 @@ const getPublicTemplateById = async (req, res) => {
     res.json(template);
 };
 
+// @desc    Submit contact form
+// @route   POST /api/public/contact
+// @access  Public
+const submitContactForm = async (req, res) => {
+    const { name, email, message } = req.body;
+
+    if (!name || !email || !message) {
+        res.status(400);
+        throw new Error('Please fill in all fields');
+    }
+
+    try {
+        await sendEmail({
+            email: process.env.ADMIN_EMAIL || 'admin@inviteme.app',
+            subject: `[Contact Form] New message from ${name}`,
+            message: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
+        });
+        res.json({ success: true, message: 'Message sent successfully' });
+    } catch (error) {
+        console.error('Contact form email error:', error);
+        // Still return success to user even if email fails
+        res.json({ success: true, message: 'Message received' });
+    }
+};
+
 export {
     getPublicCategories,
     getAllPublicTemplates,
     getPublicTemplates,
     getPublicTemplateById,
+    submitContactForm,
 };

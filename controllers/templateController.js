@@ -105,11 +105,24 @@ const deleteTemplate = async (req, res) => {
 // @access  Private/Admin
 const uploadTemplateImage = async (req, res) => {
     try {
-        const { image } = req.body; // Base64 encoded image string
+        const { image } = req.body;
 
         if (!image) {
             res.status(400);
             throw new Error('No image provided');
+        }
+
+        // Validate image type
+        if (typeof image !== 'string' || !image.match(/^data:image\/(jpeg|jpg|png|gif|webp);base64,/)) {
+            res.status(400);
+            throw new Error('Invalid image format. Only JPEG, PNG, GIF, and WebP are allowed.');
+        }
+
+        // Validate image size (base64 is ~33% larger than binary)
+        const sizeInBytes = (image.length * 3) / 4;
+        if (sizeInBytes > 5 * 1024 * 1024) {
+            res.status(400);
+            throw new Error('Image too large. Maximum size is 5MB.');
         }
 
         const result = await cloudinary.uploader.upload(image, {
@@ -122,6 +135,9 @@ const uploadTemplateImage = async (req, res) => {
             public_id: result.public_id,
         });
     } catch (error) {
+        if (error.message.includes('Invalid image') || error.message.includes('too large')) {
+            throw error;
+        }
         console.error(error);
         res.status(500);
         throw new Error('Image upload failed');

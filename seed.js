@@ -7,7 +7,6 @@ import Template from './models/Template.js';
 import Invitation from './models/Invitation.js';
 
 dotenv.config();
-
 const users = [
     {
         name: 'Admin User',

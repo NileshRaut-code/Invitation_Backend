@@ -3,6 +3,7 @@ import Template from '../models/Template.js';
 import Payment from '../models/Payment.js';
 import SystemSettings from '../models/SystemSettings.js';
 import cloudinary from '../utils/cloudinary.js';
+import { v4 as uuidv4 } from 'uuid';
 
 // @desc    Create a new invitation
 // @route   POST /api/invitations
@@ -184,6 +185,19 @@ const uploadInvitationImage = async (req, res) => {
             throw new Error('No image provided');
         }
 
+        // Validate image type
+        if (typeof image !== 'string' || !image.match(/^data:image\/(jpeg|jpg|png|gif|webp);base64,/)) {
+            res.status(400);
+            throw new Error('Invalid image format. Only JPEG, PNG, GIF, and WebP are allowed.');
+        }
+
+        // Validate image size (base64 is ~33% larger than binary)
+        const sizeInBytes = (image.length * 3) / 4;
+        if (sizeInBytes > 5 * 1024 * 1024) {
+            res.status(400);
+            throw new Error('Image too large. Maximum size is 5MB.');
+        }
+
         const result = await cloudinary.uploader.upload(image, {
             folder: 'invite-me/invitations',
             resource_type: 'image',
@@ -194,6 +208,9 @@ const uploadInvitationImage = async (req, res) => {
             public_id: result.public_id,
         });
     } catch (error) {
+        if (error.message.includes('Invalid image') || error.message.includes('too large')) {
+            throw error;
+        }
         console.error(error);
         res.status(500);
         throw new Error('Image upload failed');
@@ -206,10 +223,8 @@ const uploadInvitationImage = async (req, res) => {
 const getPublicInvitation = async (req, res) => {
     const invitation = await Invitation.findOne({
         slug: req.params.slug,
-        $or: [
-            { status: 'published', isPaid: true },
-            { isPaid: true } // Allow viewing any paid invitation
-        ]
+        status: 'published',
+        isPaid: true,
     })
         .populate('template', 'name previewImage componentName config design');
 
@@ -256,6 +271,40 @@ const toggleInvitationStatus = async (req, res, next) => {
     }
 };
 
+// @desc    Duplicate an invitation
+// @route   POST /api/invitations/:id/duplicate
+// @access  Private
+const duplicateInvitation = async (req, res, next) => {
+    try {
+        const original = await Invitation.findById(req.params.id);
+
+        if (!original) {
+            res.status(404);
+            throw new Error('Invitation not found');
+        }
+
+        if (original.user.toString() !== req.user._id.toString()) {
+            res.status(401);
+            throw new Error('Not authorized');
+        }
+
+        const newInvitation = await Invitation.create({
+            user: req.user._id,
+            template: original.template,
+            content: { ...original.content, eventName: `${original.content?.eventName || 'Event'} (Copy)` },
+            design: original.design,
+            customData: original.customData,
+            slug: uuidv4().slice(0, 8),
+            status: 'draft',
+            isPaid: false,
+        });
+
+        res.status(201).json(newInvitation);
+    } catch (error) {
+        next(error);
+    }
+};
+
 export {
     createInvitation,
     getMyInvitations,
@@ -265,4 +314,5 @@ export {
     uploadInvitationImage,
     getPublicInvitation,
     toggleInvitationStatus,
+    duplicateInvitation,
 };
