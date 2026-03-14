@@ -50,20 +50,30 @@ app.use((req, res, next) => {
 // Apply general rate limiter to all API routes
 app.use('/api', limiter); // Changed from apiLimiter to limiter
 
-// Database Connection
-const connectDB = async () => {
-    if (mongoose.connection.readyState >= 1) return; // Use existing connection
-    try {
-        await mongoose.connect(process.env.MONGO_URI);
-        console.log('MongoDB Connected');
-    } catch (err) {
-        console.error('MongoDB Connection Error:', err);
-        // Do not exit process in serverless
+// Database Connection (serverless-safe: cached promise, no race condition)
+let dbPromise = null;
+const connectDB = () => {
+    if (!dbPromise) {
+        dbPromise = mongoose.connect(process.env.MONGO_URI)
+            .then(() => console.log('MongoDB Connected'))
+            .catch((err) => {
+                console.error('MongoDB Connection Error:', err);
+                dbPromise = null; // Reset so next request retries
+                throw err;
+            });
     }
+    return dbPromise;
 };
 
-// Connect to DB immediately
-connectDB();
+// Ensure DB is connected before any route runs
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (err) {
+        res.status(503).json({ message: 'Database connection failed. Please try again.' });
+    }
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
